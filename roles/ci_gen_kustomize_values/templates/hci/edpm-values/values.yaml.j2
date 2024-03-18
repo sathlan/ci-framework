@@ -15,8 +15,12 @@ data:
         timesync_ntp_servers:
           - hostname: "{{ cifmw_ci_gen_kustomize_values_ntp_srv | default('pool.ntp.org') }}"
         edpm_network_config_os_net_config_mappings:
-          edpm-compute:
-            nic2: {{ (cifmw_networking_env_definition.instances | dict2items | selectattr('key', 'match', '^compute') | first).value.networks['ctlplane']['interface_name']  }}
+{% for compute in cifmw_networking_env_definition.instances.keys() %}
+{%   if compute.startswith('compute') %}
+          edpm-{{ compute }}:
+            nic2: {{ cifmw_networking_env_definition.instances[compute].networks.ctlplane.mac_addr }}
+{%   endif %}
+{% endfor %}
 {% if cifmw_ci_gen_kustomize_values_sshd_ranges | default([]) | length > 0 %}
         edpm_sshd_allowed_ranges:
 {%   for range in cifmw_ci_gen_kustomize_values_sshd_ranges %}
