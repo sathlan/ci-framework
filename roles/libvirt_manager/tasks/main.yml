@@ -26,6 +26,7 @@
   tags:
     - bootstrap
     - bootstrap_layout
+    - bootstrap_libvirt
   ansible.builtin.import_tasks: virtualization_prerequisites.yml
 
 - name: Install packages and dependencies
@@ -33,16 +34,37 @@
     - packages
     - bootstrap
     - bootstrap_layout
+    - bootstrap_libvirt
   ansible.builtin.import_tasks: packages.yml
 
 - name: Add polkit rules
   tags:
     - bootstrap
     - bootstrap_layout
+    - bootstrap_libvirt
   ansible.builtin.import_tasks: polkit_rules.yml
 
 - name: Check Virsh usage
   tags:
     - bootstrap
     - bootstrap_layout
+    - bootstrap_libvirt
   ansible.builtin.import_tasks: virsh_checks.yml
+
+# Deploy VBMC only on the hypervisor running OpenShift services,
+# being OCP cluster or single CRC.
+- name: Deploy VirtualBMC service container
+  tags:
+    - bootstrap
+    - bootstrap_layout
+  when:
+    - (cifmw_libvirt_manager_configuration.vms.crc.target is defined and
+       cifmw_libvirt_manager_configuration.vms.crc.target == inventory_hostname) or
+      (cifmw_libvirt_manager_configuration.vms.crc and
+       cifmw_libvirt_manager_configuration.vms.crc.target is undefined) or
+      (cifmw_libvirt_manager_configuration.vms.ocp.target is defined and
+       cifmw_libvirt_manager_configuration.vms.ocp.target == inventory_hostname) or
+      (cifmw_libvirt_manager_configuration.vms.ocp is defined and
+       cifmw_libvirt_manager_configuration.vms.ocp.target is undefined)
+  ansible.builtin.import_role:
+    name: virtualbmc

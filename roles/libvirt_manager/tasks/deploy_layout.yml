@@ -166,6 +166,7 @@
   loop_control:
     label: "{{ vm_data.key }}"
     loop_var: vm_data
+    index_var: family_id
 
 - name: Create "all" group inventory file
   ansible.builtin.template:
