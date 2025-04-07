@@ -1,0 +1,40 @@
+- name: Check if CRC VM exists
+  command: "virsh list --all --name | grep '^crc$'"
+  register: vm_exists
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Debug VM existence
+  debug:
+    var: vm_exists.stdout
+
+- name: deploy CRC
+  vars:
+    cifmw_manage_secrets_pullsecret_file: "{{ lookup('env', 'HOME') }}/pull-secret.txt"
+    cifmw_rhol_crc_config:
+      disk-size: 150
+      memory: 65536
+  ansible.builtin.include_role:
+    name: "rhol_crc"
+  when: vm_exists.stdout == ""
+
+- name: Check for existing snapshot
+  shell: "virsh snapshot-list crc --name | grep 'initial-setup'"
+  register: snapshot_check
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Debug snapshot existence
+  debug:
+    var: snapshot_check.stdout
+
+- block:
+    - name: Create a snapshot after initial setup
+      command: "virsh snapshot-create-as --domain crc --name initial-setup --description 'Initial setup snapshot'"
+      become: true
+
+    - name: Restart CRC VM
+      command: "crc start"
+  when: snapshot_check.stdout == ""

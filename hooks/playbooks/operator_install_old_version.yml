@@ -1,0 +1,51 @@
+
+
+- name: Install Old Version of the Operators
+  hosts: "{{ cifmw_target_host | default('localhost') }}"
+  vars:
+    cifmw_update_deployment_threshold_version: "v1.0.7" # For
+                                                        # downstream
+                                                        # testing.
+    _cifmw_update_deployment_version_dir: "base"        # Default
+  tasks:
+    - name: Validate if the input is a formatted version
+      set_fact:
+        _cifmw_update_deployment_is_formatted_version: >
+          {{
+          cifw_update_deployment_version |
+          regex_search('^v?\\d+(\\.\\d+)+$') is not none
+          }}
+    - name: Determine the correct version
+      set_fact:
+        _version: >
+          {{
+          'base'
+          if cifw_update_deployment_version | trim('v')
+            is version_compare(threshold_version | trim('v'), '>=')
+          else
+          cifw_update_deployment_version
+          }}
+      when: _cifmw_update_deployment_is_formatted_version | bool
+
+    - name: Point to the right overlay for OLM when deploying old version
+      vars:
+        _kustomization:
+          components:
+            - "../../../lib/olm-deps"
+            - "../../../lib/olm-openstack-subscriptions/overlays/{{ cifw_update_deployment_version }}"
+          resources:
+            - "values.yaml"
+      ansible.builtin.copy:
+        content: |
+          ---
+          {{ _kustomization | to_nice_yaml(indent=2) }}
+        dest: "{{ cifmw_ci_gen_kustomize_values_architecture_repo }}/examples/common/olm-subscriptions/kustomization.yaml"
+        mode: "0644"
+
+    # Hook parameter passing mechanism, this will be available for
+    # following playbooks, and especially install_operators tasks.
+    - name: Change directory for the customization file when deploying old version
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/{{ step }}_install_old_operator.yml"
+        content: |
+          cifmw_kustomize_deploy_olm_source_files: "{{ cifmw_ci_gen_kustomize_values_architecture_repo }}/examples/common/olm-subscriptions"

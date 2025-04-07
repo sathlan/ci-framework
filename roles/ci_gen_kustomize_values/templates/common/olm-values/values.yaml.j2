@@ -4,3 +4,9 @@ data:
 {% if cifmw_ci_gen_kustomize_values_sub_channel is defined %}
     openstack-operator-channel: {{ cifmw_ci_gen_kustomize_values_sub_channel }}
 {% endif %}
+{% if cifmw_update_deployment_version is defined %}
+    openstack-operator-version: {{ cifw_update_deployment_version }}
+{% endif %}
+{% if cifmw_update_install_plan_approval is defined %}
+    openstack-operator-installplanapproval: {{ cifmw_update_install_plan_approval }}
+{% endif %}

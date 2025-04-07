@@ -1,10 +1,24 @@
 ---
+- name: DEBUG
+  hosts:  "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
+    - debug:
+        msg: "FOOBAR: {{ pre_deploy|default('FOOBAR2') }}"
+
 - name: Run pre_deploy hooks
   when:
     - cifmw_architecture_scenario is defined
   vars:
     step: pre_deploy
   ansible.builtin.import_playbook: ./hooks.yml
+
+- name: DEBUG
+  hosts:  "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: false
+  tasks:
+    - debug:
+        msg: "FOOBAR2: {{ cifmw_kustomize_deploy_olm_source_files }}"
 
 - name: Deploy VA
   hosts: "{{ cifmw_target_host | default('localhost') }}"
