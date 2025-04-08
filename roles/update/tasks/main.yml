@@ -36,6 +36,11 @@
   ansible.builtin.shell: |
     {{ cifmw_update_artifacts_basedir }}/control_plane_test_start.sh
 
+- name: Accept the install when approval is set to Manual
+  ansible.builtin.import_role:
+    name: "kustomize_deploy"
+    tasks_from: "install_plan.yml"
+  when: cifmw_ci_gen_kustomize_values_installplan_approval == "Manual"
 
 - name: Set openstack_update_run Makefile environment variables
   tags:

@@ -107,6 +107,10 @@
         - _cifmw_kustomize_deploy_olm_osp_operator_sub_out.resources | length == 1
         - (_cifmw_kustomize_deploy_olm_osp_operator_sub_out.resources | first)['status']['installPlanRef'] is defined
 
+    - name: Accept the install when approval is set to Manual
+      ansible.builtin.include_tasks: ./install_plan.yml
+      when: cifmw_ci_gen_kustomize_values_installplan_approval == "Manual"
+
     - name: Wait for the openstack operators InstallPlan to be finished
       vars:
         _install_plan: >-
