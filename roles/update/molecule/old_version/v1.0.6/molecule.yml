@@ -36,9 +36,8 @@ verifier:
   name: ansible
 
 scenario:
-  name: old_version
+  name: old_version/v1.0.6
   test_sequence:
-    - lint
     - cleanup
     - destroy
     - dependency

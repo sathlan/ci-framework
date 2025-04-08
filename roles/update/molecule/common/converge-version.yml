@@ -13,21 +13,19 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-- name: Set some hostvars
+
+- name: Setup required variables - would be in the job definition
   hosts: "{{ cifmw_target_host | default('localhost') }}"
   tasks:
-    - name: Include ci_setup role
-      ansible.builtin.include_role:
-        name: ci_setup
     - name: activate pre deploy hook
       set_fact:
-        # This is the required in the job definition to install old
-        # version.
+        # This hook definition is the required in the job definition
+        # to install old version.
         pre_deploy_install_old_operator:
           type: playbook
           source: operator_install_old_version.yml
           extra_vars:
-            cifw_update_deployment_version: "v1.0.3"
+            cifmw_ci_gen_kustomize_values_deployment_version: "{{ _cifmw_update_test_version }}"
             cifmw_ci_gen_kustomize_values_architecture_repo: >-
               {{
               cifmw_architecture_repo |
@@ -42,12 +40,9 @@
       ansible.builtin.set_fact:
         inventory_file: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/inventory"
 
-# ^^^ This should create the correct
-# /home/zuul/ci-framework-data/artifacts/ci_k8s_snippets/olm-values/02_ci_data.yaml
 - name: Run pre deploy hook
   vars:
-#    cifwm_update_deploy_old_version: true
-    _playbook: >-
+    _hook_playbook: >-
       {{
       cifmw_architecture_repo |
       default([
@@ -60,7 +55,8 @@
     cifmw_architecture_scenario: foobar
     cifmw_nolog: false
     step: pre_deploy
-  ansible.builtin.import_playbook: "{{ _playbook }}"
+  ansible.builtin.import_playbook: "{{ _hook_playbook }}" # hook cannot be
+                                                     # idempotent.
 
 - name: Call operator install
   hosts: "{{ cifmw_target_host | default('localhost') }}"
@@ -76,14 +72,16 @@
       'openstack-k8s-operators',
       'ci-framework', 'roles', 'kustomize_deploy'] | path_join)
       }}
-    cifmw_ci_gen_kustomize_values_sub_channel: "Fake_sub_channel"
-    cifmw_ci_gen_kustomize_values_ooi_image: "Fake_OOI_image"
+    # This would be set by the hook playbook run.
     cifmw_kustomize_deploy_olm_source_files: "{{ cifmw_kustomize_deploy_architecture_repo_dest_dir }}/examples/common/olm-subscriptions"
     # Needed for install_operators to run
     cifmw_kustomize_deploy_generate_crs_only: true
     cifmw_openshift_kubeconfig: "{{ ansible_user_dir }}/.crc/machines/crc/kubeconfig"
-    cifmw_update_install_plan_approval: "Fake_Install_plan"
-    cifw_update_deployment_version: "v1.0.3"
+    # Specific parameters override to test
+    cifmw_ci_gen_kustomize_values_sub_channel: "Fake_sub_channel"
+    cifmw_ci_gen_kustomize_values_installplan_approval: "Fake_Install_plan"
+    cifmw_ci_gen_kustomize_values_ooi_image: "Fake_OOI_image"
+    cifmw_ci_gen_kustomize_values_deployment_version: "{{ _cifmw_update_test_version }}"
   tasks:
     - name: build the kustomize user data for olm tuning
       ansible.builtin.import_role:
@@ -94,43 +92,7 @@
         name: "{{ _role }}"
         tasks_from: install_operators.yml
 
-# the ci_gen_kustomize_values creates:
-# /home/zuul/ci-framework-data/artifacts/ci_gen_kustomize_values/olm-values/values.yaml
-# using
-# /home/zuul/ci-framework-data/artifacts/ci_k8s_snippets/olm-values/02_ci_data.yaml
-# from the olm/values.yaml.j2 file.
-# The the value file is copied over /home/zuul/src/github.com/openstack-k8s-operators/architecture/examples/common/olm-subscriptions/values.yaml
-# and kustomize is run.
-
-# - name: Converge
-#   hosts: all
-#   vars:
-# #    cifwm_update_deploy_old_version: true
-#     cifw_update_deployment_version: \"v1.0.3\"
-#     cifmw_ci_gen_kustomize_values_architecture_repo: >-
-#       {{
-#       cifmw_architecture_repo |
-#       default([
-#       ansible_user_dir,
-#       "src',
-#       'github.com',
-#       'openstack-k8s-operators',
-#       'architecture'] | path_join)
-#       }}
-#     cifmw_architecture_scenario: foobar
-#     pre_deploy:
-#         - name: 90 Install old operator
-#           type: playbook
-#           source: "{{ ci_framework_base_src_dir }}/hooks/playbooks/operator_install_old_version.yml"
-# 
-# 
-#   vars_files:
-#     - ../../defaults/main.yml
-#     - ./resources/vars.yml
-#   tasks:
-#     - name: Deploy OSP operators
-#       ansible.builtin.import_role:
-#         name: kustomize_deploy
-#         tasks_from: install_operators.yml
-# 
-# 
+# This will generate the file located at
+# /home/zuul/ci-framework-data/artifacts/ci_k8s_snippets/olm-values/02_ci_data.yaml,
+# containing override values that will be utilized to produce
+# /home/zuul/ci-framework-data/artifacts/kustomize_deploy/olm.yaml.

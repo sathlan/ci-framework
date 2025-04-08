@@ -3,7 +3,7 @@
   hosts: "{{ cifmw_target_host | default('localhost') }}"
   gather_facts: no
   vars:
-      expected_names:
+      _cifmw_update_test_expected_names:
         - barbican
         - cinder
         - designate
@@ -26,7 +26,7 @@
         - rabbitmq-cluster
         - swift
         - telemetry
-      version: "v1.0.3"
+      _cifmw_update_test_version: "v1.0.3"
   tasks:
       - name: Include common verification tasks
-        include_tasks: ../common/verify-version.yml
+        include_tasks: ../../common/verify-version.yml

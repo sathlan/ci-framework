@@ -39,7 +39,7 @@
         name: "rhol_crc"
       when: vm_exists.stdout == ""
 
-#    - name: Create a snapshot after initial setup
-#      command: "virsh snapshot-create-as --domain crc --name initial-setup --description 'Initial setup snapshot' --disk-only --atomic"
-#      become: true
-#      when: vm_exists.stdout == ""
+    - name: Create a snapshot after initial setup
+      command: "virsh snapshot-create-as --domain crc --name initial-setup --description 'Initial setup snapshot' --disk-only --atomic"
+      become: true
+      when: vm_exists.stdout == ""
