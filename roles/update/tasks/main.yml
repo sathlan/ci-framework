@@ -73,11 +73,17 @@
         cifmw_update_next_available_version: >-
           {{ openstackversion_info.resources[0].status.availableVersion }}
 
-- name: Capture the .status.availableVersion in cifmw_update_available_version fact
-  ansible.builtin.set_fact:
-    cifmw_update_next_available_version: >-
-      openstackversion_info.resources[0].status.availableVersion
-  when: cifmw_update_openstack_update_run_operators_updated is defined
+    - name: Capture the deployed version in openstackversion
+      ansible.builtin.set_fact:
+        cifmw_update_deployed_version: >-
+          {{ openstackversion_info.resources[0].status.deployedVersion }}
+
+    - name: Set update step to display coming OpenStack update version
+      ansible.builtin.command:
+        cmd: >
+          {{ cifmw_update_artifacts_basedir }}/update_step.sh
+          About to Update openstack from {{ cifmw_update_deployed_version }}
+          to {{ cifmw_update_next_available_version }}
 
 - name: Set openstack_update_run Makefile environment variables
   tags:
@@ -141,6 +147,12 @@
     - not cifmw_update_run_dryrun | bool
   ansible.builtin.command: |
     {{ cifmw_update_artifacts_basedir }}/control_plane_test_stop.sh
+
+- name: Set update step to Openstackclient updated
+  ansible.builtin.command:
+    cmd: >
+      {{ cifmw_update_artifacts_basedir }}/update_step.sh
+      Openstackclient updated
 
 - name: Set update step to About to start Reboot
   ansible.builtin.command:
