@@ -59,6 +59,12 @@
         cifmw_update_next_available_version: >-
           {{ openstackversion_info.resources[0].status.availableVersion }}
 
+- name: Capture the .status.availableVersion in cifmw_update_available_version fact
+  ansible.builtin.set_fact:
+    cifmw_update_next_available_version: >-
+      openstackversion_info.resources[0].status.availableVersion
+  when: cifmw_update_openstack_update_run_operators_updated is defined
+
 - name: Set openstack_update_run Makefile environment variables
   tags:
     - always
