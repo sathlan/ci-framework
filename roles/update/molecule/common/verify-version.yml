@@ -1,0 +1,74 @@
+---
+- name: Ensure the file is present
+  stat:
+    path: /home/zuul/ci-framework-data/artifacts/kustomize_deploy/olm.yaml
+  register: file_stat
+
+- name: Read the content of the file
+  slurp:
+    src: /home/zuul/ci-framework-data/artifacts/kustomize_deploy/olm.yaml
+  when: file_stat.stat.exists
+  register: file_content
+
+- name: Decode the file content
+  set_fact:
+    manifests_list: "{{ file_content.content | b64decode | from_yaml_all }}"
+
+- name: Ensure each expected subscription exists in the manifests
+  assert:
+    that:
+      - item in subscription_names
+    msg: "Expected subscription '{{ item }}' does not exist in the YAML file"
+  loop: "{{ _cifmw_update_test_expected_names }}"
+  loop_control:
+    loop_var: item
+  vars:
+    subscription_names: >-
+      {{
+      manifests_list
+      | selectattr('kind', 'equalto', 'Subscription')
+      | map(attribute='metadata.name')
+      | list
+      }}
+
+- name: Ensure excluded subscriptions are not in manifests
+  assert:
+    that:
+      - item not in _cifmw_update_excluded_subscription_names
+    msg: "Non expected subscription '{{ item }}' exists in the YAML file"
+  loop: "{{ subscription_names }}"
+  when: _cifmw_update_excluded_scription_names is defined
+  vars:
+    subscription_names: >-
+      {{
+      manifests_list
+      | selectattr('kind', 'equalto', 'Subscription')
+      | map(attribute='metadata.name')
+      | list
+      }}
+
+- name: Check installPlanApproval for specific subscriptions
+  assert:
+    that:
+      - manifest.metadata.name in _cifmw_update_test_expected_names
+      - manifest.metadata.namespace == 'openstack-operators'
+      - manifest.spec.startingCSV == manifest.spec.name + '.' + _cifmw_update_test_version
+      - manifest.spec.channel == 'Fake_sub_channel'
+    msg: "Subscription '{{ manifest.metadata.name }}' is wrong."
+  loop: "{{ manifests_list }}"
+  loop_control:
+    loop_var: manifest
+  when:
+    - manifest.kind == "Subscription"
+    - manifest.metadata.name in _cifmw_update_test_expected_names
+
+- name: Ensure that the CatalogSource is defined correctly
+  assert:
+    that:
+      - item.kind == "CatalogSource"
+      - item.metadata.namespace == "openshift-marketplace"
+      - item.spec.image == "Fake_OOI_image"
+  loop: "{{ manifests_list }}"
+  loop_control:
+    loop_var: item
+  when: item.kind == "CatalogSource"

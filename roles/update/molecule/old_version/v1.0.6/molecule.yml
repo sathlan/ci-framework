@@ -1,0 +1,48 @@
+---
+# Mainly used to override the defaults set in .config/molecule/
+# By default, it uses the "config_podman.yml" - in CI, it will use
+# "config_local.yml".
+log: true
+
+prerun: false
+
+dependency:
+  name: galaxy
+
+driver:
+  name: delegated
+  options:
+    managed: true
+
+platforms:
+  - name: localhost
+
+provisioner:
+  name: ansible
+  log: true
+  env:
+    ANSIBLE_STDOUT_CALLBACK: yaml
+    ANSIBLE_FORCE_COLOR: True
+    ANSIBLE_VERBOSITY: 2
+    ANSIBLE_TAGS: "operator"
+  inventory:
+    hosts:
+      all:
+        hosts:
+          localhost:
+            ansible_connection: local
+
+verifier:
+  name: ansible
+
+scenario:
+  name: old_version/v1.0.6
+  test_sequence:
+    - cleanup
+    - destroy
+    - dependency
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy

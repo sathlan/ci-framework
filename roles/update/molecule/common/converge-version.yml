@@ -1,0 +1,50 @@
+---
+# Copyright Red Hat, Inc.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Call operator install
+  hosts: "{{ cifmw_target_host | default('localhost') }}"
+  vars:
+    _role: >-
+      {{
+      cifmw_architecture_repo |
+      default([
+      '/home/zuul',
+      'src',
+      'github.com',
+      'openstack-k8s-operators',
+      'ci-framework', 'roles', 'kustomize_deploy'] | path_join)
+      }}
+    # Needed for install_operators to run
+    cifmw_kustomize_deploy_generate_crs_only: true
+    cifmw_openshift_kubeconfig: "{{ ansible_user_dir }}/.crc/machines/crc/kubeconfig"
+    # Specific parameters override to test
+    cifmw_ci_gen_kustomize_values_sub_channel: "Fake_sub_channel"
+    cifmw_ci_gen_kustomize_values_ooi_image: "Fake_OOI_image"
+    cifmw_ci_gen_kustomize_values_deployment_version: "{{ _cifmw_update_test_version }}"
+  tasks:
+    - name: build the kustomize user data for olm tuning
+      ansible.builtin.import_role:
+        name: "{{ _role }}"
+        tasks_from: _compute_user_kustomize.yml
+    - name: Run install operator
+      ansible.builtin.import_role:
+        name: "{{ _role }}"
+        tasks_from: install_operators.yml
+
+# This will generate the file located at
+# /home/zuul/ci-framework-data/artifacts/ci_k8s_snippets/olm-values/02_ci_data.yaml,
+# containing override values that will be utilized to produce
+# /home/zuul/ci-framework-data/artifacts/kustomize_deploy/olm.yaml.

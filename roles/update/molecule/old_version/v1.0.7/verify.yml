@@ -1,0 +1,33 @@
+---
+- name: Verify Kubernetes manifest content for v1.0.7
+  hosts: "{{ cifmw_target_host | default('localhost') }}"
+  gather_facts: no
+  vars:
+      _cifmw_update_test_expected_names:
+        - openstack
+      _cifmw_update_test_version: "v1.0.7"
+      _cifmw_update_excluded_subscription_names:
+        - openstack-ansibleee
+        - barbican
+        - cinder
+        - designate
+        - glance
+        - heat
+        - horizon
+        - infra
+        - ironic
+        - keystone
+        - manila
+        - mariadb
+        - neutron
+        - nova
+        - octavia
+        - openstack-baremetal
+        - ovn
+        - placement
+        - rabbitmq-cluster
+        - swift
+        - telemetry
+  tasks:
+      - name: Include common verification tasks
+        include_tasks: ../../common/verify-version.yml

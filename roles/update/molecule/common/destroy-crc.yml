@@ -1,0 +1,40 @@
+---
+- name: Destroy OpenShift CRC environment
+  hosts: localhost
+  gather_facts: false
+  become: true  # Use become if your user requires elevated privileges to run CRC commands
+  tasks:
+    - name: Check if CRC is running
+      command: crc status
+      environment:
+        PATH: "{{ ansible_user_dir }}/.crc/bin:{{ ansible_user_dir }}/.crc/bin/oc:{{ ansible_user_dir }}/bin:{{ ansible_env.PATH }}"
+      register: crc_status
+      ignore_errors: true
+
+    - name: Debug CRC status
+      debug:
+        var: crc_status.stdout
+
+    - name: Stop CRC if it is running
+      environment:
+        PATH: "{{ ansible_user_dir }}/.crc/bin:{{ ansible_user_dir }}/.crc/bin/oc:{{ ansible_user_dir }}/bin:{{ ansible_env.PATH }}"
+      command: crc stop
+      when: '"Running" in crc_status.stdout'
+      ignore_errors: true
+
+    - name: Delete CRC instance
+      environment:
+        PATH: "{{ ansible_user_dir }}/.crc/bin:{{ ansible_user_dir }}/.crc/bin/oc:{{ ansible_user_dir }}/bin:{{ ansible_env.PATH }}"
+      command: crc delete
+      ignore_errors: true
+
+    - name: Confirm CRC is stopped
+      environment:
+        PATH: "{{ ansible_user_dir }}/.crc/bin:{{ ansible_user_dir }}/.crc/bin/oc:{{ ansible_user_dir }}/bin:{{ ansible_env.PATH }}"
+      command: crc status
+      register: final_crc_status
+      changed_when: false
+
+    - name: Display final CRC status
+      debug:
+        var: final_crc_status.stdout
