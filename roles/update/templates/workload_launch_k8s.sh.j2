@@ -15,7 +15,8 @@ while [ $((WAIT++)) -lt ${OS_POD_TIMEOUT} ]; do
     set -o pipefail             # Make sure we get the failure, as tee
                                 # will always succeed.
     cat "{{ cifmw_update_artifacts_basedir }}/workload_launch.sh" | \
-        oc rsh -n openstack openstackclient env WKL_MODE=sanityfast bash 2>&1 | tee "${ERROR_FILE}"
+        podman exec -i lopenstackclient \
+               bash -i env WKL_MODE=sanityfast bash 2>&1 | tee "${ERROR_FILE}"
     RC=$?
     set +o pipefail
     if [ "${RC}" -eq 137 ]; then
